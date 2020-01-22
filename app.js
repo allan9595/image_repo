@@ -3,24 +3,38 @@
 const express = require('express');
 const cors = require('cors');
 const db = require('./models/index');
+const bodyParser = require('body-parser');
+const dotenv = require('dotenv');
 
 //import routes 
-const images = require('./routes/api/images');
+const product = require('./routes/api/products');
 const users = require('./routes/api/users');
 const price = require('./routes/api/price');
 
 //init app, setup ports, import models
 const app = express();
-const {Image, User} = db.sequelize;
+const {Product, User} = db.sequelize;
 const port = 5000 || process.env.PORT; 
 
 // variable to enable global error logging
 const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'true';
 
+dotenv.config();
+
+
 app.use(cors());
 
-// Setup request body JSON parsing.
-app.use(express.json());
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }));
+
+// parse application/json
+app.use(bodyParser.json());
+
+
+//use routes
+app.use('/api/v1',product);
+app.use('/api/v1',users);
+app.use('/api/v1',price);
 
 //init the db connection
 db.sequelize
