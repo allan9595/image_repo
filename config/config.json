@@ -3,7 +3,7 @@
     "storage": "./development.db",
     
     "dialect": "sqlite",
-    "operatorsAliases": false
+    "operatorsAliases": 0
   },
   "test": {
     "username": "root",
@@ -11,7 +11,7 @@
     "storage": "./test.db",
     "host": "127.0.0.1",
     "dialect": "sqlite",
-    "operatorsAliases": false
+    "operatorsAliases": 0
   },
   "production": {
     "username": "root",
@@ -19,6 +19,6 @@
     "storage": "./production.db",
     "host": "127.0.0.1",
     "dialect": "sqlite",
-    "operatorsAliases": false
+    "operatorsAliases": 0
   }
 }
