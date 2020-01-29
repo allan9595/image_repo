@@ -1,6 +1,7 @@
 //import necessary files and modules
 const express = require('express');
 const fs = require('fs');
+const querystring = require('querystring');
 const router = express.Router();
 const Product = require('../../models').Product;
 const multer  = require('multer')
@@ -10,6 +11,7 @@ const FileType = require('file-type');
 const Sequelize = require('sequelize');
 const aws = require('aws-sdk')
 
+    
 //this portion of code upload the images from /tmp folder to s3, productUpload middleware
 const productUpload = (req, res) => {
     
@@ -31,6 +33,7 @@ const productUpload = (req, res) => {
         return res.status(400).json({"message":req.fileValidationError}).end();
     }
 
+
     aws.config.setPromisesDependency(); //enable the aws-sdk promise
 
     //configure the aws
@@ -43,6 +46,7 @@ const productUpload = (req, res) => {
     //create a new s3 instance
     const s3 = new aws.S3();
 
+    //hold information for res 
     let uploadData = [];
     let errors = [];
     let errorsS3 = [];
@@ -108,6 +112,7 @@ const productUpload = (req, res) => {
 
 //following part is for the actual api
 
+//upload an image with proper validation
 router
   .post('/product',multer(
         { 
@@ -126,5 +131,58 @@ router
   )
 
 
-//delete one or more selected image
+//delete one selected image
+router.delete('/product/:id', (req, res) => {
+    //id need filter for security reason
+
+    //find the record from the provided id
+    Product.findByPk(req.params.id).then((product) => {
+        
+        //retrieve the product then delete the instance on s3 bucket
+        const key = product.productImageURL.split('/').slice(-2)[0] + '/' + product.productImageURL.split('/').slice(-2)[1];
+    
+        aws.config.setPromisesDependency(); //enable the aws-sdk promise
+
+        //configure the aws
+        aws.config.update({
+            accessKeyId: process.env.ACCESSKEYID,
+            secretAccessKey: process.env.SECRETACCESSKEY,
+            region: process.env.REGION
+        });
+
+        //configure s3
+        const s3 = new aws.S3();
+        const params = {
+            Bucket:process.env.BUCKET_NAME,
+            Key: key
+        }
+        
+        //destory the s3 object which is the image
+        s3.deleteObject(params, (err, data) => {
+            if (err) {
+                // an error occurred
+                res.status(500).json({msg: "An error occurred while deleting"},err)
+            }else{
+                //destory the product stored in db
+                Product.destroy({
+                    where: {
+                        id: req.params.id
+                    }
+                }).then(() => {
+                    res.status(200).json({msg: "Delete success!"})
+                });
+            }
+        });
+    })
+})
+
+//delete mutiple selected images
+
+router.delete('/products/*', (req, res) => {
+    //id need filter for security reason
+
+    console.log()
+})
+
+
 module.exports = router;

@@ -2,6 +2,7 @@
 // load modules
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const db = require('./models/index');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
@@ -21,7 +22,7 @@ const enableGlobalErrorLogging = process.env.ENABLE_GLOBAL_ERROR_LOGGING === 'tr
 
 dotenv.config();
 
-
+app.use(helmet());
 app.use(cors());
 
 // parse application/x-www-form-urlencoded
@@ -29,7 +30,6 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // parse application/json
 app.use(bodyParser.json());
-
 
 //use routes
 app.use('/api/v1',product);
