@@ -1,7 +1,7 @@
 //import necessary files and modules
 const express = require('express');
 const fs = require('fs');
-const querystring = require('querystring');
+const url = require('url');
 const router = express.Router();
 const Product = require('../../models').Product;
 const multer  = require('multer')
@@ -9,8 +9,8 @@ const uuidv4 = require('uuid/v4');
 const path = require('path');
 const FileType = require('file-type');
 const Sequelize = require('sequelize');
-const aws = require('aws-sdk')
-
+const aws = require('aws-sdk');
+const validator = require('validator');
     
 //this portion of code upload the images from /tmp folder to s3, productUpload middleware
 const productUpload = (req, res) => {
@@ -133,7 +133,7 @@ router
 
 //delete one selected image
 router.delete('/product/:id', (req, res) => {
-    //id need filter for security reason
+    //validate input
 
     //find the record from the provided id
     Product.findByPk(req.params.id).then((product) => {
@@ -173,15 +173,89 @@ router.delete('/product/:id', (req, res) => {
                 });
             }
         });
-    })
+    }).catch((e) => {
+        res.status(400).json({error: e})
+    });
 })
 
-//delete mutiple selected images
+//delete mutiple selected images in one http request
 
 router.delete('/products/*', (req, res) => {
     //id need filter for security reason
 
-    console.log()
+    let path = url.parse(req.url).pathname;
+    
+    // split and remove empty element;
+    path = path.split('/').filter((e) => {
+        return e.length > 0;
+    })
+
+     // remove the first component 'products'
+    productIds = path.slice(1);
+   
+    //delet all products in db and s3 provided by user
+    Product.findAll({
+        where:{
+            id: productIds
+        }
+    }).then((products) => {
+        
+        if(products.length === 0){
+            throw Error;
+        }
+        let productArray = [];
+
+        if(products){
+            products.forEach((element,index) => {
+                
+                //retrieve the product then delete the instance on s3 bucket
+                //parse each url
+                let key = element.dataValues.productImageURL.split('/').slice(-2)[0] + '/' + element.dataValues.productImageURL.split('/').slice(-2)[1];
+                productArray.push({Key: key});
+                Product.destroy({
+                    where: {
+                        productImageURL: element.dataValues.productImageURL
+                    }
+                }).catch((e) => {
+                    res.status(400).json({msg: "Error on DB"});
+                })
+            
+            })
+        };
+
+        //delet from s3 in one request
+        aws.config.setPromisesDependency(); //enable the aws-sdk promise
+
+        //configure the aws
+        aws.config.update({
+            accessKeyId: process.env.ACCESSKEYID,
+            secretAccessKey: process.env.SECRETACCESSKEY,
+            region: process.env.REGION
+        });
+
+        //configure s3
+        const s3 = new aws.S3();
+        const params = {
+            Bucket:process.env.BUCKET_NAME,
+            Delete: {
+                Objects: productArray,
+                Quiet: false
+            } 
+        }
+
+        s3.deleteObjects(params, function(err, data) {
+            if (err){
+                res.status(500).json({msg: "An error occurred while deleting"},err)
+            }else {
+                res.status(200).json({msg: "Delete success!"})
+            }
+          }
+        );
+    }).catch((e) => {
+        res.status(500).json({msg: "An error occurred while deleting"})
+    })
+
+
 })
 
 

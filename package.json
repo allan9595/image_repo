@@ -29,7 +29,8 @@
     "password-validator": "^5.0.3",
     "sequelize": "^5.21.3",
     "sqlite3": "^4.1.1",
-    "uuid": "^3.4.0"
+    "uuid": "^3.4.0",
+    "validator": "^12.2.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.2",
